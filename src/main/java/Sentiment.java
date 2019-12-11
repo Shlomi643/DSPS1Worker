@@ -57,7 +57,7 @@ public class Sentiment {
     public void printEntities(String review) {
         Properties props = new Properties();
         props.put("annotators", "tokenize , ssplit, pos, lemma, ner");
-        StanfordCoreNLP NERPipeline =  new StanfordCoreNLP(props);
+        StanfordCoreNLP NERPipeline = new StanfordCoreNLP(props);
         // create an empty Annotation just with the given text
         Annotation document = new Annotation(review);
 
