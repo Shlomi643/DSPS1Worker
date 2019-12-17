@@ -11,10 +11,6 @@ public class MResponse extends MMessage {
         this.response = response;
     }
 
-    public static String name() {
-        return "MResponse";
-    }
-
     @Override
     public String toString() {
         return getString(getClass().getName(), super.id, this.response);

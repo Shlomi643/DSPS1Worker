@@ -10,8 +10,8 @@ import java.util.Map;
 public class ProtocolManager {
 
     private static Map<Integer, String> map = new HashMap<Integer, String>() {{
-        put(10, MTerminate.class.getName());
-        put(11, MTask.class.getName());
+        put(10, MTaskTerminate.class.getName());
+        put(11, MTaskDownload.class.getName());
         put(21, MReady.class.getName());
         put(31, MJobSentiment.class.getName());
         put(32, MJobEntity.class.getName());

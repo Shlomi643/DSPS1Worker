@@ -25,8 +25,7 @@ public class Worker {
         try {
             MJob job = parseMessage(((TextMessage) message).getText());
             String result = handleMessage(job);
-            MResponse response = new MResponse(job.getId(), result);
-            connOut.send(response.toString());
+            connOut.send(new MResponse(job.getId(), result).toString());
             message.acknowledge(); // To delete messages
         } catch (JMSException e) {
             e.printStackTrace();
@@ -44,6 +43,10 @@ public class Worker {
 
     private void start() {
         connIn.start();
+    }
+
+    private void stop() {
+        connIn.stop();
     }
 
     public static void main(String[] args) {

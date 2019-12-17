@@ -7,11 +7,12 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
-import protocol.MMessage;
-import com.amazonaws.services.sqs.model.Message;
-import protocol.ProtocolManager;
-import utils.SQSConn;
+import protocol.*;
+import utils.SQSConn2;
 
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.TextMessage;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +31,7 @@ public class Manager {
     private ExecutorService workerPool;
     private ExecutorService localsPool;
     private AmazonS3 s3;
+    private SQSConn2 inputConn;
 
     public Manager(int n) {
         this.n = n;
@@ -43,32 +45,39 @@ public class Manager {
                 .withCredentials(credentialsProvider)
                 .withRegion(REGION)
                 .build();
-        new Thread(() -> listenToLocal(new SQSConn(QUEUE_CONTROL_MANAGER)));
+        this.inputConn = new SQSConn2(QUEUE_CONTROL_MANAGER, this::messageFromLocal);
+
     }
 
-    private void listenToLocal(SQSConn localConn) {
-        while (true) {
-            List<Message> messages = localConn.receive();
+    private void start() {
+        this.inputConn.start();
+    }
 
-            messages.forEach(this::handleMessage);
+    private void messageFromLocal(Message message) {
+        try {
+            MTask task = parseMessage(((TextMessage) message).getText());
 
-            localConn.delete(messages);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            if (task instanceof MTaskTerminate)
+                task.handle(this::terminate);
+            else if (task instanceof MTaskDownload)
+                task.handle(this::downloadAndDistribute);
+
+
+            message.acknowledge(); // To delete messages
+        } catch (JMSException e) {
+            e.printStackTrace();
         }
     }
 
-    private void handleMessage(Message message) {
-        MMessage mMessage = ProtocolManager.parse(message.getBody());
-        if (mMessage == null)
-            return;
-        
+    private MTask parseMessage(String text) {
+        return null;
     }
 
-    public void doTask(int controlID, String fileLocation) {
+    private void terminate(int id, String content) {
+
+    }
+
+    private void downloadAndDistribute(int controlID, String fileLocation) {
         localsPool.execute(() -> {
             if (files.containsKey(fileLocation))
                 return;
@@ -90,20 +99,9 @@ public class Manager {
 
     }
 
-    public void terminate() {
-//        ExecutorService
-    }
 
     public static void main(String[] args) {
-        Set<Integer> v = new HashSet<Integer>();
-        v.add(1);
-        v.add(2);
-        v.add(3);
-        System.out.println(v);
-        Set<Integer> v1 = new HashSet<Integer>();
-        v1.add(2);
-        v1.add(1);
-        v1.add(3);
-        System.out.println(v1);
+        Manager m = new Manager(0);
+        m.start();
     }
 }

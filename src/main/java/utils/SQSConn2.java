@@ -51,4 +51,12 @@ public class SQSConn2 {
             e.printStackTrace();
         }
     }
+
+    public void stop() {
+        try {
+            this.connection.close();
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
 }
