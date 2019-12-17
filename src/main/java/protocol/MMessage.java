@@ -1,13 +1,11 @@
-package actors;
+package protocol;
 
-import org.json.JSONObject;
 
-public class MMessage {
+public abstract class MMessage {
 
-    private int 
+    protected int id;
 
-    public MMessage(String body) {
-        JSONObject obj; = new JSONObject(body);
-    }
+    @Override
+    abstract public String toString();
 
 }

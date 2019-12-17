@@ -1,14 +1,25 @@
 package protocol;
 
-import actors.manager.Manager;
+import actors.worker.NLPHelper;
 
-public class MJob extends MMessage{
+import static protocol.ProtocolManager.getString;
 
-    private boolean is
-    private String
+public class MJobSentiment extends MJob {
 
-    public MJob(int workerID) {
+    private String review;
+
+    public MJobSentiment(int workerID, String review) {
         super.id = workerID;
+        this.review = review;
     }
 
+    @Override
+    public String handle(NLPHelper helper) {
+        return helper.findSentiment(review);
+    }
+
+    @Override
+    public String toString() {
+        return getString(getClass().getName(), super.id, this.review);
+    }
 }

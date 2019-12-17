@@ -1,4 +1,4 @@
-package actors;
+package actors.control;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +11,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 
 import static utils.Utils.*;
 

@@ -1,10 +1,17 @@
 package protocol;
 
-public class Terminate extends MMessage {
+import org.json.JSONObject;
 
-    private int terminatorID;
+import static protocol.ProtocolManager.getString;
 
-    public Terminate(int terminatorID) {
-        this.terminatorID = terminatorID;
+public class MTerminate extends MMessage {
+
+    public MTerminate(int terminatorID, String content) {
+        super.id = terminatorID;
+    }
+
+    @Override
+    public String toString() {
+        return getString(getClass().getName(), super.id, "");
     }
 }

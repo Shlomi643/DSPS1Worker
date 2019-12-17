@@ -1,4 +1,4 @@
-package jobs;
+package actors.worker;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,13 +22,13 @@ import edu.stanford.nlp.util.CoreMap;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class Sentiment {
+public class NLPHelper {
 
-    public Sentiment() {
+    public NLPHelper() {
 
     }
 
-    public int findSentiment(String review) {
+    public String findSentiment(String review) {
         Properties props = new Properties();
         props.put("annotators", "tokenize, ssplit, parse, sentiment");
         StanfordCoreNLP sentimentPipeline = new StanfordCoreNLP(props);
@@ -49,16 +49,16 @@ public class Sentiment {
 
             }
         }
-        return mainSentiment;
+        return "" + mainSentiment;
     }
 
-    public void printEntities(String review) {
+    public String extractEntities(String review) {
         Properties props = new Properties();
         props.put("annotators", "tokenize , ssplit, pos, lemma, ner");
         StanfordCoreNLP NERPipeline = new StanfordCoreNLP(props);
         // create an empty Annotation just with the given text
         Annotation document = new Annotation(review);
-
+        StringBuilder s = new StringBuilder();
         // run all Annotators on this text
         NERPipeline.annotate(document);
 
@@ -74,13 +74,15 @@ public class Sentiment {
                 String word = token.get(TextAnnotation.class);
                 // this is the NER label of the token
                 String ne = token.get(NamedEntityTagAnnotation.class);
-                System.out.println("\t-" + word + ":" + ne);
+                s.append("\t-").append(word).append(":").append(ne);
+//                System.out.println();
             }
         }
+        return s.toString();
 
     }
 
-    public static String getString(String filename) {
+    static String getString(String filename) {
         try {
             return new String(Files.readAllBytes(Paths.get("src/main/resources/" + filename)));
         } catch (IOException e) {
@@ -92,12 +94,12 @@ public class Sentiment {
         String text = getString("0689835604.json");
         JSONObject obj = new JSONObject(text);
         System.out.println(obj);
-        Sentiment sentiment = new Sentiment();
+        NLPHelper sentiment = new NLPHelper();
         JSONArray reviews = obj.getJSONArray("reviews");
         for (Object o : reviews) {
             JSONObject review = (JSONObject) o;
             System.out.println(review.getString("title") + ": " + sentiment.findSentiment(review.getString("text")));
-            sentiment.printEntities(review.getString("text"));
+            sentiment.extractEntities(review.getString("text"));
         }
 
     }
