@@ -1,5 +1,6 @@
+package jobs;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -18,11 +19,8 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
 import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.util.CoreMap;
-import jdk.nashorn.internal.parser.JSONParser;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import javax.json.Json;
 
 public class Sentiment {
 
