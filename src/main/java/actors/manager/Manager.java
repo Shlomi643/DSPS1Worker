@@ -99,7 +99,6 @@ public class Manager {
 
     }
 
-
     public static void main(String[] args) {
         Manager m = new Manager(0);
         m.start();

@@ -11,6 +11,7 @@ public class Utils {
     public static final String REGION = "us-east-1";
     public static final String NAME = "dsps1-dan-shlomi-queue";
     public static final String QUEUE_CONTROL_MANAGER = NAME + "-" + "manager-control.fifo";
+    public static final String QUEUE_MANAGER_CONTROL = NAME + "-" + "manager-control.fifo";
     public static final String QUEUE_MANAGER_WORKER = NAME + "-" + "manager-worker.fifo";
     public static final String QUEUE_WORKER_MANAGER = NAME + "-" + "worker-manager.fifo";
 

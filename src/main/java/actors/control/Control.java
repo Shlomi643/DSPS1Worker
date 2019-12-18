@@ -11,6 +11,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.sqs.AmazonSQS;
+import protocol.MTaskTerminate;
+import utils.SQSConn;
 
 import static utils.Utils.*;
 
@@ -22,7 +24,7 @@ public class Control {
     private int n;
     private boolean terminate;
     private AmazonS3 s3;
-    private AmazonSQS sqs;
+    private SQSConn out;
 
     public Control(String[] inputs, String[] outputs, int n, boolean terminate) {
         this.inputs = inputs.clone();
@@ -36,6 +38,7 @@ public class Control {
                 .withCredentials(credentialsProvider)
                 .withRegion(REGION)
                 .build();
+        this.out = new SQSConn(QUEUE_CONTROL_MANAGER);
         commManager();
     }
 
@@ -45,7 +48,7 @@ public class Control {
         receiveFiles(); // Blocking
 
         if (this.terminate) {
-            // TODO send SQS message to terminate
+            out.send(new MTaskTerminate(0, "").toString()); // TODO change to id
         }
     }
 
