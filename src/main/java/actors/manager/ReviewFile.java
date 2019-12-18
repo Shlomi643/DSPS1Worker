@@ -19,7 +19,7 @@ public class ReviewFile {
 
         addReviews(reviews);
 
-        this.numOfReviews = reviews.length();
+        this.numOfReviews = this.reviews.size();
     }
 
     private void addReviews(String reviews) {
@@ -46,5 +46,13 @@ public class ReviewFile {
 
     public int getNumOfReviews() {
         return numOfReviews;
+    }
+
+    @Override
+    public String toString() {
+        return "ReviewFile{" +
+                "reviews=" + reviews +
+                ", numOfReviews=" + numOfReviews +
+                '}';
     }
 }

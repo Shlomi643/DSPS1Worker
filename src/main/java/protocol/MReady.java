@@ -6,8 +6,9 @@ public class MReady extends MMessage {
 
     private String location;
 
-    public MReady(int id, String content) {
-
+    public MReady(String id, String content) {
+        super.id = id;
+        this.location = content;
     }
 
     public String getLocation() {

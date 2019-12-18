@@ -9,13 +9,13 @@ import java.util.List;
 
 public class Utils {
 
-    public static final String BUCKET_NAME = "dsps1-dan-shlomi";
-    public static final String REGION = "us-east-1";
-    public static final String NAME = "dsps1-dan-shlomi-queue";
-    public static final String QUEUE_CONTROL_MANAGER = NAME + "-" + "manager-control.fifo";
-    public static final String QUEUE_MANAGER_CONTROL = NAME + "-" + "manager-control.fifo";
-    public static final String QUEUE_MANAGER_WORKER = NAME + "-" + "manager-worker.fifo";
-    public static final String QUEUE_WORKER_MANAGER = NAME + "-" + "worker-manager.fifo";
+    public static final String BUCKET_NAME = "dsps1-dan-shlomi-eu";
+    public static final String REGION = "eu-central-1";
+    private static final String NAME = "dsps";
+    public static final String QUEUE_CONTROL_MANAGER = NAME + "_" + "control_manager";
+    public static final String QUEUE_MANAGER_CONTROL = NAME + "_" + "manager_control";
+    public static final String QUEUE_MANAGER_WORKER = NAME + "_" + "manager_worker";
+    public static final String QUEUE_WORKER_MANAGER = NAME + "_" + "worker_manager";
 
     public static void displayTextInputStream(InputStream input) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
@@ -35,7 +35,7 @@ public class Utils {
             String line = reader.readLine();
             if (line == null) break;
 
-            s.append(line);
+            s.append(line).append("\n");
         }
         return s.toString();
     }

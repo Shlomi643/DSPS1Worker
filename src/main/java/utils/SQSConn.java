@@ -1,17 +1,17 @@
 package utils;
 
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.DeleteQueueRequest;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.amazonaws.services.sqs.model.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static utils.Utils.*;
 
@@ -29,6 +29,8 @@ public class SQSConn {
     }
 
     public SQSConn(String name) {
+
+        createQueue(name);
         this.queueURL = sqs.getQueueUrl(name).getQueueUrl();
     }
 
@@ -61,7 +63,18 @@ public class SQSConn {
     }
 
     public static void createQueue(String name) {
-        sqs.createQueue(new CreateQueueRequest(name));
+        try {
+            sqs.createQueue(new CreateQueueRequest(name));
+        } catch (QueueNameExistsException ignored) {
+
+        }
+    }
+
+    private static Map<String, String> getAttributes() {
+        return new HashMap<String, String>() {{
+            put("FifoQueue", "true");
+            put("ContentBasedDeduplication", "true");
+        }};
     }
 
 }

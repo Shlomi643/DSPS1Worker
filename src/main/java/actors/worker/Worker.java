@@ -17,14 +17,15 @@ public class Worker {
     private SQSConn connOut;
 
     public Worker() {
-        this.connIn = new SQSListener(QUEUE_MANAGER_WORKER, this::messageFromManager);
         this.connOut = new SQSConn(QUEUE_WORKER_MANAGER);
+        this.connIn = new SQSListener(QUEUE_MANAGER_WORKER, this::messageFromManager);
     }
 
     private void messageFromManager(Message message) {
         try {
             MJob job = parseMessage(((TextMessage) message).getText());
             MResponse result = handleMessage(job);
+            System.out.println("sending result to manager " + result.toString());
             connOut.send(result.toString());
             message.acknowledge(); // To delete messages
         } catch (JMSException e) {

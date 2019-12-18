@@ -16,13 +16,13 @@ import protocol.MTaskTerminate;
 import protocol.ProtocolManager;
 import utils.SQSConn;
 import utils.SQSListener;
+import utils.Utils;
+
+import static utils.Utils.*;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.MessageListener;
 import javax.jms.TextMessage;
-
-import static utils.Utils.*;
 
 public class Control {
 
@@ -41,10 +41,9 @@ public class Control {
     private SQSConn out;
 
     public Control(String[] inputs, String[] outputs, int n, boolean terminate) {
-        insToOuts = new HashMap<String, String>() {{
-            for (int i = 0; i < inputs.length; i++)
-                insToOuts.put(inputs[0], outputs[0]);
-        }};
+        insToOuts = new HashMap<>();
+        for (int i = 0; i < inputs.length; i++)
+            insToOuts.put(inputs[i], outputs[i]);
 
         this.n = n;
         this.terminate = terminate;
@@ -53,9 +52,7 @@ public class Control {
         this.id = UUID.randomUUID().toString();
         this.credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
         this.s3 = getS3();
-
         createResources();
-
         this.out = new SQSConn(QUEUE_CONTROL_MANAGER);
 
     }
@@ -77,10 +74,11 @@ public class Control {
         receiveFiles(); // Blocking
 
         if (this.terminate) {
+            System.out.println("sending terminate to manager from " + this.id);
             out.send(new MTaskTerminate(this.id, "").toString());
         }
 
-        s3.deleteBucket(BUCKET_NAME);
+//        s3.deleteBucket(BUCKET_NAME);
 //        deleteSQSs();
 
     }
@@ -110,17 +108,15 @@ public class Control {
         try {
             MReady msg = (MReady) ProtocolManager.parse(((TextMessage) message).getText());
 
-            if (msg == null || this.id.equals(msg.getId()))
+            if (msg == null || !this.id.equals(msg.getId()))
                 return;
 
-            String location = msg.getLocation();
+            String location = this.id + "/forlocal/" + msg.getLocation();
             S3Object object = s3.getObject(new GetObjectRequest(BUCKET_NAME, location));
-
             message.acknowledge();
-
             synchronized (sqsLock) {
                 this.counter--;
-                createHTML(object.getObjectContent(), location);
+                createHTML(object.getObjectContent(), msg.getLocation());
                 sqsLock.notify();
             }
 
@@ -131,8 +127,7 @@ public class Control {
 
     private void createHTML(S3ObjectInputStream objectContent, String location) {
         try {
-            String fileName = location.substring(location.lastIndexOf("/") + 1);
-            HTMLBuilder.build(getTextInputStream(objectContent), insToOuts.get(fileName));
+            HTMLBuilder.build(getTextInputStream(objectContent), insToOuts.get(location));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -140,11 +135,13 @@ public class Control {
 
     private void sendFiles() {
         for (String filename : insToOuts.keySet()) {
-            File file = new File(filename);
+            String absPath = System.getProperty("user.dir") + "\\src\\main\\resources\\" + filename;
+            File file = new File(absPath);
             String key = this.id + "/formanager/" + file.getName()
                     .replace('\\', '_').replace('/', '_').replace(':', '_');
             s3.putObject(new PutObjectRequest(BUCKET_NAME, key, file));
-            out.send(new MTaskDownload(this.id, filename).toString());
+            System.out.println("sending task to manager from " + this.id + " to download file " + filename);
+            out.send(new MTaskDownload(this.id, file.getName()).toString());
         }
     }
 
@@ -171,8 +168,7 @@ public class Control {
     }
 
     private static void start() {
-        String s = System.getProperty("user.dir") + "\\src\\main\\resources\\";
-        Control control = new Control(new String[]{s + "0689835604.json"}, new String[]{""}, 0, false);
+        Control control = new Control(new String[]{"0689835604.json"}, new String[]{"lol"}, 0, false);
         control.commManager();
     }
 
