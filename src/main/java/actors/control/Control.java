@@ -2,7 +2,7 @@ package actors.control;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.*;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -10,36 +10,65 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
-import com.amazonaws.services.sqs.AmazonSQS;
+import protocol.MReady;
+import protocol.MTaskDownload;
 import protocol.MTaskTerminate;
+import protocol.ProtocolManager;
 import utils.SQSConn;
+import utils.SQSListener;
+
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import javax.jms.TextMessage;
 
 import static utils.Utils.*;
 
 public class Control {
 
-    private String[] inputs;
-    private String[] outputs;
+    private static final int NUM_OF_LOCALS = 100;
+    private final Object sqsLock = new Object();
+    //    private String[] inputs;
+//    private String[] outputs;
+    private Map<String, String> insToOuts;
     private int numOfFiles;
+    private int counter;
     private int n;
+    private final String id;
     private boolean terminate;
+    private AWSCredentialsProvider credentialsProvider;
     private AmazonS3 s3;
     private SQSConn out;
 
     public Control(String[] inputs, String[] outputs, int n, boolean terminate) {
-        this.inputs = inputs.clone();
-        this.outputs = outputs.clone();
+        insToOuts = new HashMap<String, String>() {{
+            for (int i = 0; i < inputs.length; i++)
+                insToOuts.put(inputs[0], outputs[0]);
+        }};
+
         this.n = n;
         this.terminate = terminate;
         this.numOfFiles = inputs.length;
+        this.counter = this.numOfFiles;
+        this.id = UUID.randomUUID().toString();
+        this.credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+        this.s3 = getS3();
 
-        AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
-        this.s3 = AmazonS3ClientBuilder.standard()
+        createResources();
+
+        this.out = new SQSConn(QUEUE_CONTROL_MANAGER);
+
+    }
+
+    private void createResources() {
+        queueNames.forEach(SQSConn::createQueue);
+    }
+
+    private AmazonS3 getS3() {
+        return AmazonS3ClientBuilder.standard()
                 .withCredentials(credentialsProvider)
                 .withRegion(REGION)
                 .build();
-        this.out = new SQSConn(QUEUE_CONTROL_MANAGER);
-        commManager();
     }
 
     private void commManager() {
@@ -48,32 +77,79 @@ public class Control {
         receiveFiles(); // Blocking
 
         if (this.terminate) {
-            out.send(new MTaskTerminate(0, "").toString()); // TODO change to id
+            out.send(new MTaskTerminate(this.id, "").toString());
         }
+
+        s3.deleteBucket(BUCKET_NAME);
+//        deleteSQSs();
+
+    }
+
+    private void deleteSQSs() {
+        conns.forEach(SQSConn::deleteQueue);
     }
 
     private void receiveFiles() {
-        int counter = numOfFiles;
-        while (counter > 0) {
-            String key = ""; // TODO from SQS
-            S3Object object = s3.getObject(new GetObjectRequest(BUCKET_NAME, key));
-            try {
-                displayTextInputStream(object.getObjectContent());
-            } catch (IOException e) {
-                e.printStackTrace();
+        SQSListener in = new SQSListener(QUEUE_MANAGER_CONTROL, this::messageFromManager);
+        in.start();
+
+        //Main Thread block until all finished
+        while (this.counter > 0) {
+            synchronized (sqsLock) {
+                try {
+                    sqsLock.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
-            counter--;
+        }
+        in.stop();
+    }
+
+    private void messageFromManager(Message message) {
+        try {
+            MReady msg = (MReady) ProtocolManager.parse(((TextMessage) message).getText());
+
+            if (msg == null || this.id.equals(msg.getId()))
+                return;
+
+            String location = msg.getLocation();
+            S3Object object = s3.getObject(new GetObjectRequest(BUCKET_NAME, location));
+
+            message.acknowledge();
+
+            synchronized (sqsLock) {
+                this.counter--;
+                createHTML(object.getObjectContent(), location);
+                sqsLock.notify();
+            }
+
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void createHTML(S3ObjectInputStream objectContent, String location) {
+        try {
+            String fileName = location.substring(location.lastIndexOf("/") + 1);
+            HTMLBuilder.build(getTextInputStream(objectContent), insToOuts.get(fileName));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     private void sendFiles() {
-        for (String filename : inputs) {
-            System.out.println(filename);
+        for (String filename : insToOuts.keySet()) {
             File file = new File(filename);
-            String key = file.getName().replace('\\', '_').replace('/', '_').replace(':', '_');
-            PutObjectRequest req = new PutObjectRequest(BUCKET_NAME, key, file);
-            s3.putObject(req);
+            String key = this.id + "/formanager/" + file.getName()
+                    .replace('\\', '_').replace('/', '_').replace(':', '_');
+            s3.putObject(new PutObjectRequest(BUCKET_NAME, key, file));
+            out.send(new MTaskDownload(this.id, filename).toString());
         }
+    }
+
+    public int getNumOfFiles() {
+        return numOfFiles;
     }
 
     public static void main(String[] args) {
@@ -86,7 +162,7 @@ public class Control {
 //
 //        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
 //                .withCredentials(credentialsProvider)
-//                .withRegion("us-west-2")
+//                .withRegion(REGION)
 //                .build();
 //        for (Bucket bucket : s3.listBuckets()) {
 //            System.out.println(" - " + bucket.getName());
@@ -97,6 +173,7 @@ public class Control {
     private static void start() {
         String s = System.getProperty("user.dir") + "\\src\\main\\resources\\";
         Control control = new Control(new String[]{s + "0689835604.json"}, new String[]{""}, 0, false);
+        control.commManager();
     }
 
     private static void startAsJar(String[] args) {
@@ -113,5 +190,6 @@ public class Control {
 
         Control control = new Control(Arrays.copyOfRange(args, 0, N),
                 Arrays.copyOfRange(args, N, args.length - 1), n, terminate);
+        control.commManager();
     }
 }

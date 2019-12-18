@@ -1,15 +1,21 @@
 package actors.manager;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ReviewFile {
 
-    private List<String> reviews;
+    // Review is JSON as in files
+    private Map<String, String> reviews;
     private int numOfReviews;
 
+
     public ReviewFile(String reviews) {
-        this.reviews = new ArrayList<>();
+        this.reviews = new ConcurrentHashMap<>();
 
         addReviews(reviews);
 
@@ -21,14 +27,20 @@ public class ReviewFile {
         for (String line : reviews.split("\n")) {
             s.append(line);
             if (line.equals("}")) {
-                this.reviews.add(s.toString());
+                JSONObject obj = new JSONObject(s.toString());
+                JSONArray arr = obj.getJSONArray("reviews");
+                arr.forEach(x -> this.reviews.put(getID(x), x.toString()));
                 s = new StringBuilder();
             }
 
         }
     }
 
-    public List<String> getReviews() {
+    private String getID(Object obj) {
+        return ((JSONObject) obj).getString("id");
+    }
+
+    public Map<String, String> getReviews() {
         return reviews;
     }
 

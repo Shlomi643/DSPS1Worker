@@ -14,13 +14,13 @@ import javax.jms.Session;
 
 import static utils.Utils.REGION;
 
-public class SQSConn2 {
+public class SQSListener {
 
     private String queueName;
     private MessageListener listener;
     private SQSConnection connection;
 
-    public SQSConn2(String name, MessageListener listener) {
+    public SQSListener(String name, MessageListener listener) {
         this.queueName = name;
         this.listener = listener;
         this.connection = createConnection();

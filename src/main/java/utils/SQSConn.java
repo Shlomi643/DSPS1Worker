@@ -6,6 +6,8 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.amazonaws.services.sqs.model.CreateQueueRequest;
+import com.amazonaws.services.sqs.model.DeleteQueueRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 
@@ -16,14 +18,17 @@ import static utils.Utils.*;
 public class SQSConn {
 
     private String queueURL;
-    private AmazonSQS sqs;
+    private static AmazonSQS sqs = getSQS();
 
-    public SQSConn(String name) {
+    private static AmazonSQS getSQS() {
         AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
-        this.sqs = AmazonSQSClientBuilder.standard()
+        return AmazonSQSClientBuilder.standard()
                 .withCredentials(credentialsProvider)
                 .withRegion(REGION)
                 .build();
+    }
+
+    public SQSConn(String name) {
         this.queueURL = sqs.getQueueUrl(name).getQueueUrl();
     }
 
@@ -50,4 +55,13 @@ public class SQSConn {
             sqs.deleteMessage(this.queueURL, m.getReceiptHandle());
         }
     }
+
+    public void deleteQueue() {
+        sqs.deleteQueue(new DeleteQueueRequest(this.queueURL));
+    }
+
+    public static void createQueue(String name) {
+        sqs.createQueue(new CreateQueueRequest(name));
+    }
+
 }

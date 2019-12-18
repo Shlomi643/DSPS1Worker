@@ -3,9 +3,13 @@ package protocol;
 
 public abstract class MMessage {
 
-    protected int id;
+    protected String id;
 
     @Override
     abstract public String toString();
 
+
+    public String getId() {
+        return id;
+    }
 }

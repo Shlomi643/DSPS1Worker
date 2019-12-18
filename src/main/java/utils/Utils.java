@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Utils {
 
@@ -38,5 +40,19 @@ public class Utils {
         return s.toString();
     }
 
+    public static List<String> queueNames = new ArrayList<String>() {{
+        add(QUEUE_CONTROL_MANAGER);
+        add(QUEUE_MANAGER_CONTROL);
+        add(QUEUE_WORKER_MANAGER);
+        add(QUEUE_MANAGER_WORKER);
+    }};
+
+    public static List<SQSConn> conns = new ArrayList<SQSConn>() {{
+        queueNames.forEach(x -> add(new SQSConn(x)));
+    }};
+
+    public static int roundUp(int dividend, int divisor) {
+        return (int) Math.ceil((double) dividend / divisor);
+    }
 
 }

@@ -24,10 +24,6 @@ import org.json.JSONObject;
 
 public class NLPHelper {
 
-    public NLPHelper() {
-
-    }
-
     public String findSentiment(String review) {
         Properties props = new Properties();
         props.put("annotators", "tokenize, ssplit, parse, sentiment");

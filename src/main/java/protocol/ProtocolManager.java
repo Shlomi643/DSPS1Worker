@@ -1,5 +1,6 @@
 package protocol;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Constructor;
@@ -15,34 +16,57 @@ public class ProtocolManager {
         put(21, MReady.class.getName());
         put(31, MJobSentiment.class.getName());
         put(32, MJobEntity.class.getName());
-        put(41, MResponse.class.getName());
+        put(41, MResponseSentiment.class.getName());
+        put(42, MResponseEntity.class.getName());
     }};
 
-    public static MMessage parse(String json) {
+    private static MMessage parseHelper(String json) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         JSONObject obj = new JSONObject(json);
         int code = obj.getInt("code");
-        int id = obj.getInt("id");
+        String id = obj.getString("id");
         String content = obj.getString("content");
+
         try {
-            Constructor m = Class.forName(map.get(code)).getDeclaredConstructor(Integer.class, String.class);
+            String filename = obj.getString("filename");
+            String reviewID = obj.getString("reviewID");
+            Constructor m = Class.forName(map.get(code)).getDeclaredConstructor(String.class, String.class, String.class, String.class);
+            return (MMessage) m.newInstance(id, filename, reviewID, content);
+        } catch (JSONException e) {
+            Constructor m = Class.forName(map.get(code)).getDeclaredConstructor(String.class, String.class);
             return (MMessage) m.newInstance(id, content);
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
-            e.printStackTrace();
         }
-        return null;
     }
 
-    static int getCode(String name) {
+    public static MMessage parse(String json) {
+        try {
+            return parseHelper(json);
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static int getCode(String name) {
         for (Map.Entry<Integer, String> entry : map.entrySet())
             if (name.equals(entry.getValue()))
                 return entry.getKey();
         return 0;
     }
 
-    public static String getString(String name, int id, String content) {
+    public static String getString(String name, String id, String content) {
         JSONObject obj = new JSONObject();
         obj.put("code", ProtocolManager.getCode(name));
         obj.put("id", id);
+        obj.put("content", content);
+        return obj.toString();
+    }
+
+    public static String getString(String name, String id, String filename, String reviewID, String content) {
+        JSONObject obj = new JSONObject();
+        obj.put("code", ProtocolManager.getCode(name));
+        obj.put("id", id);
+        obj.put("filename", filename);
+        obj.put("reviewID", reviewID);
         obj.put("content", content);
         return obj.toString();
     }
